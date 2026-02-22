@@ -54,7 +54,7 @@ fun Project.setupCommon() {
         ndkVersion = "29.0.14206865"
 
         defaultConfig.apply {
-            minSdk = 23
+            minSdk = 24
         }
 
         compileOptions.apply {

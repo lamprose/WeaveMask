@@ -207,7 +207,10 @@ private fun genStubClasses(outDir: File): Pair<String, String> {
             // Check Android 7.0.0 PackageParser#buildClassName
             yield(cls.toString().replaceFirstChar { it.lowercase() })
         }
-    }.distinct().iterator()
+    }
+        // Distinct by lower case to support case insensitive file systems.
+        .distinctBy { it.lowercase() }
+        .iterator()
 
     fun genClass(type: String, outDir: File): String {
         val clzName = classNameGenerator.next()
@@ -274,6 +277,11 @@ fun Project.setupStubApk() {
 
             val componentJavaOutDir = layout.buildDirectory
                 .dir("generated/${variantLowered}/components").get().asFile
+            // Remove stale generated sources before creating randomized class names.
+            // This prevents case-only name changes (e.g. h -> H) from colliding on
+            // case-insensitive file systems such as Windows.
+            componentJavaOutDir.deleteRecursively()
+            componentJavaOutDir.mkdirs()
 
             val (factory, app) = genStubClasses(componentJavaOutDir)
 

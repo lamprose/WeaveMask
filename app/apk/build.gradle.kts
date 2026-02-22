@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.parcelize")
     id("com.android.legacy-kapt")
     id("androidx.navigation.safeargs.kotlin")
+    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0"
 }
 
 setupMainApk()
@@ -19,6 +20,7 @@ kapt {
 android {
     buildFeatures {
         dataBinding = true
+        compose = true
     }
 
     compileOptions {
@@ -56,6 +58,25 @@ dependencies {
     implementation(libs.fragment.ktx)
     implementation(libs.appcompat)
     implementation(libs.material)
+
+    // Compose BOM
+    implementation(platform("androidx.compose:compose-bom:2025.03.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.runtime:runtime")
+
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.9.7")
+
+    // Miuix
+    implementation("top.yukonga.miuix.kmp:miuix:0.8.3")
+    implementation("top.yukonga.miuix.kmp:miuix-icons:0.8.3")
+
+    // Haze (Gaussian blur)
+    implementation(libs.haze)
 
     // Make sure kapt runs with a proper kotlin-stdlib
     kapt(kotlin("stdlib"))

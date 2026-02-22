@@ -118,6 +118,18 @@ sealed class BaseSettingsItem : ObservableRvItem() {
         private fun Resources.getArrayOrEmpty(id: Int): Array<String> =
             runCatching { getStringArray(id) }.getOrDefault(emptyArray())
 
+        /**
+         * 供 Compose SuperDropdown 使用的公开选择方法
+         * 设置选中值并通知 UI 更新
+         */
+        fun selectValue(index: Int, view: View, handler: Handler) {
+            if (value != index) {
+                value = index
+                notifyPropertyChanged(BR.description)
+                handler.onItemAction(view, this)
+            }
+        }
+
         override fun onPressed(view: View, handler: Handler) {
             handler.onItemPressed(view, this) {
                 MagiskDialog(view.activity).apply {

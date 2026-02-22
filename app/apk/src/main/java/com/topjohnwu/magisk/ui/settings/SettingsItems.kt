@@ -26,6 +26,16 @@ import com.topjohnwu.magisk.view.MagiskDialog
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.magisk.core.R as CoreR
 
+// --- Logs (作为设置页的二级入口)
+
+/**
+ * 日志入口项
+ * 点击后导航到日志页面
+ */
+object Logs : BaseSettingsItem.Blank() {
+    override val title = CoreR.string.logs.asText()
+}
+
 // --- Customization
 
 object Customization : BaseSettingsItem.Section() {

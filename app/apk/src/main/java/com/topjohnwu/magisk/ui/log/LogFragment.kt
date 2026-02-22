@@ -35,11 +35,6 @@ class LogFragment : BaseFragment<FragmentLogMd2Binding>(), MenuProvider {
         set(value) {
             MotionRevealHelper.withViews(binding.logFilter, binding.logFilterToggle, value)
             actionSave?.isVisible = !value
-            with(activity as MainActivity) {
-                invalidateToolbar()
-                requestNavigationHidden(value)
-                setDisplayHomeAsUpEnabled(value)
-            }
         }
 
     override fun onStart() {

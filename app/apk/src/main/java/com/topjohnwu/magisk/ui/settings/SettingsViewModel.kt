@@ -36,15 +36,21 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
         it.put(BR.handler, this)
     }
 
+    /** 日志页面导航回调 */
+    var onNavigateToLog: (() -> Unit)? = null
+
     private fun createItems(): List<BaseSettingsItem> {
         val context = AppContext
         val hidden = context.packageName != BuildConfig.APP_PACKAGE_NAME
 
+        // Logs - 作为设置页的第一个入口
+        val list = mutableListOf<BaseSettingsItem>(Logs)
+
         // Customization
-        val list = mutableListOf(
+        list.addAll(listOf(
             Customization,
             Theme, if (LocaleSetting.useLocaleManager) LanguageSystem else Language
-        )
+        ))
         if (isRunningAsStub && ShortcutManagerCompat.isRequestPinShortcutSupported(context))
             list.add(AddShortcut)
 
@@ -103,6 +109,7 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
 
     override fun onItemAction(view: View, item: BaseSettingsItem) {
         when (item) {
+            Logs -> onNavigateToLog?.invoke()
             Theme -> SettingsFragmentDirections.actionSettingsFragmentToThemeFragment().navigate()
             LanguageSystem -> view.activity.startActivity(LocaleSetting.localeSettingsIntent)
             AddShortcut -> AddHomeIconEvent().publish()

@@ -13,3 +13,4 @@ native/out
 *.iml
 .idea
 local.properties
+app/gradle/gradle-daemon-jvm.properties
