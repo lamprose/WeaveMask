@@ -97,6 +97,12 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(Theme.themeRes)
+        // 在 setContent 之前就启用 edge-to-edge，确保首帧时 WindowInsets 已正确生效，
+        // 避免底部导航栏因 inset 延迟而产生跳动
+        enableEdgeToEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         splashController.preOnCreate()
         super.onCreate(savedInstanceState)
         splashController.onCreate(savedInstanceState)
