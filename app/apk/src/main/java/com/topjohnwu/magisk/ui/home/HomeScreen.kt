@@ -44,9 +44,11 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Backup
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Download
 import top.yukonga.miuix.kmp.icon.extended.Layers
+import top.yukonga.miuix.kmp.icon.extended.Pin
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Update
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -301,10 +303,14 @@ private fun MagiskCard(
                             Icon(
                                 imageVector = MiuixIcons.Update,
                                 contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = context.getString(CoreR.string.update))
+                            Text(
+                                text = context.getString(CoreR.string.update),
+                                color = MiuixTheme.colorScheme.onPrimary
+                            )
                         }
                     }
                     HomeViewModel.State.LOADING -> {
@@ -318,10 +324,14 @@ private fun MagiskCard(
                             Icon(
                                 imageVector = MiuixIcons.Download,
                                 contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSecondaryVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = context.getString(CoreR.string.install))
+                            Text(
+                                text = context.getString(CoreR.string.install),
+                                color = MiuixTheme.colorScheme.onSecondaryVariant
+                            )
                         }
                     }
                 }
@@ -373,7 +383,7 @@ private fun ZygiskCard(
             horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = MiuixIcons.Settings,
+                imageVector = MiuixIcons.Pin,
                 contentDescription = null,
                 tint = statusColor,
                 modifier = Modifier.size(24.dp)
@@ -416,7 +426,7 @@ private fun RamdiskCard(
             horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = MiuixIcons.Layers,
+                imageVector = MiuixIcons.Backup,
                 contentDescription = null,
                 tint = statusColor,
                 modifier = Modifier.size(24.dp)
@@ -494,10 +504,14 @@ private fun ManagerCard(
                             Icon(
                                 imageVector = MiuixIcons.Update,
                                 contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = context.getString(CoreR.string.update))
+                            Text(
+                                text = context.getString(CoreR.string.update),
+                                color = MiuixTheme.colorScheme.onPrimary
+                            )
                         }
                     }
                     HomeViewModel.State.UP_TO_DATE -> {
@@ -505,10 +519,14 @@ private fun ManagerCard(
                             Icon(
                                 imageVector = MiuixIcons.Download,
                                 contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSecondaryVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = context.getString(CoreR.string.install))
+                            Text(
+                                text = context.getString(CoreR.string.install),
+                                color = MiuixTheme.colorScheme.onSecondaryVariant
+                            )
                         }
                     }
                     HomeViewModel.State.LOADING -> {
@@ -580,12 +598,14 @@ private fun UninstallButton(
         Icon(
             imageVector = MiuixIcons.Delete,
             contentDescription = null,
+            tint = MiuixTheme.colorScheme.onError,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = context.getString(CoreR.string.uninstall_magisk_title),
-            style = MiuixTheme.textStyles.body2
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.onError
         )
     }
 }
@@ -640,6 +660,7 @@ private fun SupportCard(
                     Image(
                         painter = painterResource(id = CoreR.drawable.ic_patreon),
                         contentDescription = context.getString(CoreR.string.patreon),
+                        colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -654,6 +675,7 @@ private fun SupportCard(
                     Image(
                         painter = painterResource(id = CoreR.drawable.ic_paypal),
                         contentDescription = context.getString(CoreR.string.paypal),
+                        colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -824,6 +846,7 @@ private fun DeveloperItem(
                     Image(
                         painter = painterResource(id = iconRes),
                         contentDescription = context.getString(link.title),
+                        colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
                         modifier = Modifier.size(20.dp)
                     )
                 }
