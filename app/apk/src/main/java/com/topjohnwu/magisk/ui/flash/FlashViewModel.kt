@@ -24,6 +24,9 @@ import com.topjohnwu.magisk.databinding.set
 import com.topjohnwu.magisk.events.SnackbarEvent
 import com.topjohnwu.superuser.CallbackList
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class FlashViewModel : BaseViewModel() {
@@ -42,6 +45,8 @@ class FlashViewModel : BaseViewModel() {
 
     val items = ObservableArrayList<ConsoleItem>()
     lateinit var args: FlashFragmentArgs
+    private val _consoleLines = MutableStateFlow<List<String>>(emptyList())
+    val consoleLines: StateFlow<List<String>> = _consoleLines.asStateFlow()
 
     private val logItems = mutableListOf<String>().synchronized()
     private val outItems = object : CallbackList<String>() {
@@ -49,7 +54,19 @@ class FlashViewModel : BaseViewModel() {
             e ?: return
             items.add(ConsoleItem(e))
             logItems.add(e)
+            _consoleLines.value = _consoleLines.value + e
         }
+    }
+
+    fun prepareForCompose(action: String, uri: android.net.Uri?) {
+        args = FlashFragmentArgs(action = action, additionalData = uri)
+        _state.value = State.FLASHING
+        showReboot = Info.isRooted
+        items.clear()
+        synchronized(logItems) {
+            logItems.clear()
+        }
+        _consoleLines.value = emptyList()
     }
 
     fun startFlashing() {
@@ -117,6 +134,8 @@ class FlashViewModel : BaseViewModel() {
             SnackbarEvent(file.toString()).publish()
         }
     }
+
+    fun saveLog() = savePressed()
 
     fun restartPressed() = reboot()
 }

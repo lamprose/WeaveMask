@@ -1,5 +1,6 @@
 package com.topjohnwu.magisk.ui
 
+import android.net.Uri
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.tween
@@ -37,8 +38,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.compose.rememberNavController
 import kotlin.math.abs
 import kotlin.math.PI
@@ -47,8 +50,11 @@ import kotlin.math.exp
 import kotlin.math.sin
 import kotlin.math.sqrt
 import com.topjohnwu.magisk.core.Info
+import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.R as CoreR
 import com.topjohnwu.magisk.core.model.module.LocalModule
+import com.topjohnwu.magisk.ui.flash.FlashScreen
+import com.topjohnwu.magisk.ui.flash.FlashViewModel
 import com.topjohnwu.magisk.ui.home.HomeScreen
 import com.topjohnwu.magisk.ui.home.HomeViewModel
 import com.topjohnwu.magisk.ui.install.InstallScreen
@@ -103,7 +109,16 @@ sealed class Screen(val route: String) {
     /** 主题 */
     object Theme : Screen("theme")
     /** 刷写 */
-    object Flash : Screen("flash")
+    object Flash : Screen("flash/{action}?uri={uri}") {
+        const val ACTION_ARG = "action"
+        const val URI_ARG = "uri"
+
+        fun createRoute(action: String, uri: Uri?): String {
+            val encodedAction = Uri.encode(action)
+            val encodedUri = uri?.toString()?.let(Uri::encode).orEmpty()
+            return "flash/$encodedAction?uri=$encodedUri"
+        }
+    }
     /** 操作 */
     object Action : Screen("action")
     /** 拒绝列表 */
@@ -207,6 +222,7 @@ fun rememberMainPagerState(pagerState: PagerState): MainPagerState {
 @Composable
 fun MainScreen(
     homeViewModel: HomeViewModel,
+    flashViewModel: FlashViewModel,
     moduleViewModel: ModuleViewModel,
     superuserViewModel: SuperuserViewModel,
     logViewModel: LogViewModel,
@@ -262,6 +278,46 @@ fun MainScreen(
             ) {
                 InstallScreen(
                     viewModel = installViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToFlash = { action, uri ->
+                        navController.navigate(Screen.Flash.createRoute(action, uri)) {
+                            popUpTo(Screen.Install.route) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.Flash.route,
+                arguments = listOf(
+                    navArgument(Screen.Flash.ACTION_ARG) { type = NavType.StringType },
+                    navArgument(Screen.Flash.URI_ARG) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = ""
+                    }
+                ),
+                enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = navTween()) },
+                exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 4 }, animationSpec = navTween()) },
+                popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 4 }, animationSpec = navTween()) },
+                popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = navTween()) }
+            ) { backStackEntry ->
+                val action = backStackEntry.arguments
+                    ?.getString(Screen.Flash.ACTION_ARG)
+                    ?.let(Uri::decode)
+                    ?: Const.Value.FLASH_MAGISK
+                val uriArg = backStackEntry.arguments
+                    ?.getString(Screen.Flash.URI_ARG)
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let(Uri::decode)
+                    ?.let(Uri::parse)
+
+                FlashScreen(
+                    viewModel = flashViewModel,
+                    action = action,
+                    additionalData = uriArg,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

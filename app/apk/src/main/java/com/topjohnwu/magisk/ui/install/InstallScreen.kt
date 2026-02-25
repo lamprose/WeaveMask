@@ -8,6 +8,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.core.Config
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.R as CoreR
@@ -56,6 +58,7 @@ enum class InstallMethod {
 fun InstallScreen(
     viewModel: InstallViewModel,
     onNavigateBack: () -> Unit = {},
+    onNavigateToFlash: (String, Uri?) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -74,7 +77,16 @@ fun InstallScreen(
     val notes = viewModel.notes
     val hasNotes = notes.isNotEmpty()
 
-    var selectedMethod by remember { mutableStateOf<InstallMethod?>(null) }
+    var selectedMethod by remember(viewModel.method) {
+        mutableStateOf(
+            when (viewModel.method) {
+                R.id.method_patch -> InstallMethod.PATCH
+                R.id.method_direct -> InstallMethod.DIRECT
+                R.id.method_inactive_slot -> InstallMethod.INACTIVE_SLOT
+                else -> null
+            }
+        )
+    }
 
     Scaffold(
         modifier = modifier,
@@ -141,13 +153,17 @@ fun InstallScreen(
                     onMethodChange = { newMethod ->
                         selectedMethod = newMethod
                         viewModel.method = when (newMethod) {
-                            InstallMethod.PATCH -> METHOD_PATCH
-                            InstallMethod.DIRECT -> METHOD_DIRECT
-                            InstallMethod.INACTIVE_SLOT -> METHOD_INACTIVE_SLOT
+                            InstallMethod.PATCH -> R.id.method_patch
+                            InstallMethod.DIRECT -> R.id.method_direct
+                            InstallMethod.INACTIVE_SLOT -> R.id.method_inactive_slot
                             null -> -1
                         }
                     },
-                    onInstallClick = { viewModel.install() }
+                    onInstallClick = {
+                        viewModel.composeFlashRequest()?.let {
+                            onNavigateToFlash(it.action, it.dataUri)
+                        }
+                    }
                 )
 
                 if (hasNotes) {
@@ -300,6 +316,17 @@ private fun MethodCard(
 
     val isMethodPatch = selectedMethod == InstallMethod.PATCH
     val isMethodSelected = if (isMethodPatch) dataUri != null else selectedMethod != null
+    val startContentColor = if (isMethodSelected) {
+        MiuixTheme.colorScheme.onPrimary
+    } else {
+        MiuixTheme.colorScheme.disabledOnPrimaryButton
+    }
+    val methodRadioColors = RadioButtonDefaults.colors(
+        selectedColor = MiuixTheme.colorScheme.primary,
+        unselectedColor = MiuixTheme.colorScheme.onSurfaceContainer,
+        disabledSelectedColor = MiuixTheme.colorScheme.disabledPrimary,
+        disabledUnselectedColor = MiuixTheme.colorScheme.disabledOnSurface
+    )
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -333,11 +360,15 @@ private fun MethodCard(
                         enabled = isMethodSelected,
                         colors = ButtonDefaults.buttonColorsPrimary()
                     ) {
-                        Text(text = context.getString(CoreR.string.install_start))
+                        Text(
+                            text = context.getString(CoreR.string.install_start),
+                            color = startContentColor
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = MiuixIcons.ChevronForward,
                             contentDescription = null,
+                            tint = startContentColor,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -361,7 +392,8 @@ private fun MethodCard(
                     ) {
                         RadioButton(
                             selected = selectedMethod == InstallMethod.PATCH,
-                            onClick = null
+                            onClick = null,
+                            colors = methodRadioColors
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
@@ -384,7 +416,8 @@ private fun MethodCard(
                         ) {
                             RadioButton(
                                 selected = selectedMethod == InstallMethod.DIRECT,
-                                onClick = null
+                                onClick = null,
+                                colors = methodRadioColors
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
@@ -408,7 +441,8 @@ private fun MethodCard(
                         ) {
                             RadioButton(
                                 selected = selectedMethod == InstallMethod.INACTIVE_SLOT,
-                                onClick = null
+                                onClick = null,
+                                colors = methodRadioColors
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
@@ -437,11 +471,3 @@ private fun NotesCard(notes: String) {
         )
     }
 }
-
-/**
- * 安装方法常量
- * 与原有 R.id 值保持一致
- */
-private const val METHOD_PATCH = 1
-private const val METHOD_DIRECT = 2
-private const val METHOD_INACTIVE_SLOT = 3

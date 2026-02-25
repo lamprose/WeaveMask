@@ -44,6 +44,7 @@ import com.topjohnwu.magisk.core.base.SplashScreenHost
 import com.topjohnwu.magisk.core.isRunningAsStub
 import com.topjohnwu.magisk.core.ktx.toast
 import com.topjohnwu.magisk.core.tasks.AppMigration
+import com.topjohnwu.magisk.ui.flash.FlashViewModel
 import com.topjohnwu.magisk.ui.home.HomeViewModel
 import com.topjohnwu.magisk.ui.install.InstallViewModel
 import com.topjohnwu.magisk.ui.log.LogViewModel
@@ -95,6 +96,9 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
 
     /** 日志 ViewModel */
     private val logViewModel: LogViewModel by viewModels { VMFactory }
+
+    /** 刷写 ViewModel */
+    private val flashViewModel: FlashViewModel by viewModels { VMFactory }
 
     /** 安装 ViewModel */
     private val installViewModel: InstallViewModel by viewModels { VMFactory }
@@ -170,6 +174,7 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
 
             MainScreen(
                 homeViewModel = homeViewModel,
+                flashViewModel = flashViewModel,
                 moduleViewModel = moduleViewModel,
                 superuserViewModel = superuserViewModel,
                 logViewModel = logViewModel,
@@ -283,6 +288,8 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
      */
     override fun startObserveLiveData() {
         viewModel.viewEvents.observe(this, this::onEventDispatched)
+        installViewModel.viewEvents.observe(this, this::onEventDispatched)
+        flashViewModel.viewEvents.observe(this, this::onEventDispatched)
         Info.isConnected.observe(this, viewModel::onNetworkChanged)
     }
 
@@ -292,7 +299,7 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
      * @param event 要处理的事件
      */
     override fun onEventDispatched(event: ViewEvent) {
-        // 默认实现，子类可重写
+        super.onEventDispatched(event)
     }
 
     /**

@@ -15,6 +15,7 @@ import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.BaseViewModel
 import com.topjohnwu.magisk.core.AppContext
 import com.topjohnwu.magisk.core.BuildConfig.APP_VERSION_CODE
+import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.Config
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.base.ContentResultCallback
@@ -98,6 +99,29 @@ class InstallViewModel(svc: NetworkService, markwon: Markwon) : BaseViewModel() 
         }
     }
 
+    fun composeFlashRequest(): ComposeFlashRequest? {
+        return when (method) {
+            R.id.method_patch -> data.value?.let {
+                ComposeFlashRequest(
+                    action = Const.Value.PATCH_FILE,
+                    dataUri = it
+                )
+            }
+
+            R.id.method_direct -> ComposeFlashRequest(
+                action = Const.Value.FLASH_MAGISK,
+                dataUri = null
+            )
+
+            R.id.method_inactive_slot -> ComposeFlashRequest(
+                action = Const.Value.FLASH_INACTIVE_SLOT,
+                dataUri = null
+            )
+
+            else -> null
+        }
+    }
+
     override fun onSaveState(state: Bundle) {
         state.putParcelable(
             INSTALL_STATE_KEY, InstallState(
@@ -139,6 +163,11 @@ class InstallViewModel(svc: NetworkService, markwon: Markwon) : BaseViewModel() 
         val keepEnc: Boolean,
         val recovery: Boolean,
     ) : Parcelable
+
+    data class ComposeFlashRequest(
+        val action: String,
+        val dataUri: Uri?
+    )
 
     companion object {
         private const val INSTALL_STATE_KEY = "install_state"
