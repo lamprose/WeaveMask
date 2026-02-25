@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Save
+import androidx.compose.runtime.LaunchedEffect
 import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,14 +27,16 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import com.topjohnwu.magisk.core.R as CoreR
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Folder
 import top.yukonga.miuix.kmp.icon.extended.ListView
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -49,15 +53,23 @@ fun LogScreen(
 ) {
     val context = LocalContext.current
     var showSuperuserLog by remember { mutableStateOf(false) }
+    var hasStartedLoading by rememberSaveable { mutableStateOf(false) }
     val hazeState = remember { HazeState() }
     val hazeStyle = HazeStyle(
         backgroundColor = MiuixTheme.colorScheme.surface,
         tint = HazeTint(MiuixTheme.colorScheme.surface.copy(0.8f))
     )
 
-    val loading = viewModel.loading
-    val magiskLogs = viewModel.logs
-    val suLogs = viewModel.items
+    LaunchedEffect(hasStartedLoading) {
+        if (!hasStartedLoading) {
+            hasStartedLoading = true
+            viewModel.startLoading()
+        }
+    }
+
+    val loading = viewModel.loadingState
+    val magiskLogs = viewModel.logsState
+    val suLogs = viewModel.itemsState
 
     MiuixTheme {
         Scaffold(
@@ -88,12 +100,17 @@ fun LogScreen(
                         }
                     },
                     actions = {
-                        TextButton(
-                            text = context.getString(CoreR.string.menuSaveLog),
+                        IconButton(
                             onClick = { viewModel.saveMagiskLog() }
-                        )
-                        TextButton(
-                            text = context.getString(CoreR.string.menuClearLog),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Save,
+                                contentDescription = context.getString(CoreR.string.menuSaveLog),
+                                tint = MiuixTheme.colorScheme.onBackground
+                            )
+                        }
+                        IconButton(
+                            modifier = Modifier.padding(end = 16.dp),
                             onClick = {
                                 if (showSuperuserLog) {
                                     viewModel.clearLog()
@@ -101,12 +118,19 @@ fun LogScreen(
                                     viewModel.clearMagiskLog()
                                 }
                             }
-                        )
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.Delete,
+                                contentDescription = context.getString(CoreR.string.menuClearLog),
+                                tint = MiuixTheme.colorScheme.onBackground
+                            )
+                        }
                     }
                 )
             },
             floatingActionButton = {
                 FloatingActionButton(
+                    containerColor = MiuixTheme.colorScheme.primary,
                     onClick = { showSuperuserLog = !showSuperuserLog }
                 ) {
                     Icon(
@@ -115,7 +139,8 @@ fun LogScreen(
                         } else {
                             MiuixIcons.ListView
                         },
-                        contentDescription = null
+                        contentDescription = null,
+                        tint = MiuixTheme.colorScheme.onPrimary
                     )
                 }
             },

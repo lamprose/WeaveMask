@@ -1,6 +1,10 @@
 package com.topjohnwu.magisk.ui.log
 
 import android.system.Os
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.databinding.Bindable
 import androidx.lifecycle.viewModelScope
 import com.topjohnwu.magisk.BR
@@ -30,6 +34,9 @@ class LogViewModel(
     var loading = true
         private set(value) = set(value, field, { field = it }, BR.loading)
 
+    var loadingState by mutableStateOf(true)
+        private set
+
     // --- empty view
 
     val itemEmpty = TextItem(R.string.log_data_none)
@@ -38,31 +45,47 @@ class LogViewModel(
     // --- su log
 
     val items = diffList<SuLogRvItem>()
+    val itemsState = mutableStateListOf<SuLogRvItem>()
     val extraBindings = bindExtra {
         it.put(BR.viewModel, this)
     }
 
     // --- magisk log
     val logs = diffList<LogRvItem>()
+    val logsState = mutableStateListOf<LogRvItem>()
     var magiskLogRaw = " "
 
     override suspend fun doLoadWork() {
         loading = true
+        loadingState = true
 
-        val (suLogs, suDiff) = withContext(Dispatchers.Default) {
-            magiskLogRaw = repo.fetchMagiskLogs()
-            val newLogs = magiskLogRaw.split('\n').map { LogRvItem(it) }
-            logs.update(newLogs)
-            val suLogs = repo.fetchSuLogs().map { SuLogRvItem(it) }
-            suLogs to items.calculateDiff(suLogs)
+        try {
+            val (newMagiskLogs, suLogs, suDiff) = withContext(Dispatchers.Default) {
+                magiskLogRaw = repo.fetchMagiskLogs()
+                val newMagiskLogs = magiskLogRaw.split('\n').map { LogRvItem(it) }
+                val suLogs = repo.fetchSuLogs().map { SuLogRvItem(it) }
+                val suDiff = items.calculateDiff(suLogs)
+                Triple(newMagiskLogs, suLogs, suDiff)
+            }
+
+            logs.update(newMagiskLogs)
+            logsState.clear()
+            logsState.addAll(newMagiskLogs)
+
+            items.firstOrNull()?.isTop = false
+            items.lastOrNull()?.isBottom = false
+            items.update(suLogs, suDiff)
+            items.firstOrNull()?.isTop = true
+            items.lastOrNull()?.isBottom = true
+
+            itemsState.clear()
+            itemsState.addAll(items)
+        } catch (e: Throwable) {
+            SnackbarEvent(R.string.failure).publish()
+        } finally {
+            loading = false
+            loadingState = false
         }
-
-        items.firstOrNull()?.isTop = false
-        items.lastOrNull()?.isBottom = false
-        items.update(suLogs, suDiff)
-        items.firstOrNull()?.isTop = true
-        items.lastOrNull()?.isBottom = true
-        loading = false
     }
 
     fun saveMagiskLog() = withExternalRW {
