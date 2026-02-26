@@ -3,14 +3,23 @@ package com.topjohnwu.magisk.ui.superuser
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Slider
 import android.os.Process
 import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import com.topjohnwu.magisk.core.model.su.SuPolicy
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -52,8 +62,8 @@ import top.yukonga.miuix.kmp.extra.SuperListPopup
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.MoreCircle
-import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlin.math.roundToInt
 
 /**
  * 超级用户页面
@@ -73,6 +83,7 @@ fun SuperuserScreen(
     val uiState by viewModel.uiState.collectAsState()
     var hasStartedLoading by rememberSaveable { mutableStateOf(false) }
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
+    var expandedPolicyKeys by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val showTopPopup = remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
     val hazeState = remember { HazeState() }
@@ -185,7 +196,15 @@ fun SuperuserScreen(
                                     PolicyList(
                                         policies = uiState.policies,
                                         viewModel = viewModel,
-                                        bottomPadding = bottomPadding
+                                        bottomPadding = bottomPadding,
+                                        expandedPolicyKeys = expandedPolicyKeys,
+                                        onToggleExpanded = { key ->
+                                            expandedPolicyKeys = if (expandedPolicyKeys.contains(key)) {
+                                                expandedPolicyKeys - key
+                                            } else {
+                                                expandedPolicyKeys + key
+                                            }
+                                        }
                                     )
                                 }
                             }
@@ -248,9 +267,11 @@ private fun EmptyContent() {
  */
 @Composable
 private fun PolicyList(
-    policies: List<PolicyRvItem>,
+    policies: List<PolicyCardUiState>,
     viewModel: SuperuserViewModel,
-    bottomPadding: Dp
+    bottomPadding: Dp,
+    expandedPolicyKeys: List<String>,
+    onToggleExpanded: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -262,14 +283,17 @@ private fun PolicyList(
 
         items(
             items = policies,
-            key = { it.item.uid }
+            key = { it.key }
         ) { policyItem ->
+            val policyKey = policyItem.key
             PolicyItem(
                 item = policyItem,
-                onDelete = { viewModel.deletePressed(policyItem) },
-                onUpdateNotify = { viewModel.updateNotify(policyItem) },
-                onUpdateLogging = { viewModel.updateLogging(policyItem) },
-                onUpdatePolicy = { policy -> viewModel.updatePolicy(policyItem, policy) }
+                isExpanded = expandedPolicyKeys.contains(policyKey),
+                onToggleExpanded = { onToggleExpanded(policyKey) },
+                onDelete = { viewModel.deleteByKey(policyKey) },
+                onUpdateNotify = { viewModel.toggleNotifyByKey(policyKey) },
+                onUpdateLogging = { viewModel.toggleLogByKey(policyKey) },
+                onUpdatePolicy = { policy -> viewModel.updatePolicyByKey(policyKey, policy) }
             )
         }
 
@@ -285,7 +309,9 @@ private fun PolicyList(
  */
 @Composable
 private fun PolicyItem(
-    item: PolicyRvItem,
+    item: PolicyCardUiState,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
     onDelete: () -> Unit,
     onUpdateNotify: () -> Unit,
     onUpdateLogging: () -> Unit,
@@ -293,14 +319,13 @@ private fun PolicyItem(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val cardAlpha = if (item.isEnabled) 1f else 0.5f
+    val isAllowed = item.policy >= SuPolicy.ALLOW
+    var sliderValue by remember(item.key) { mutableFloatStateOf(policyToSliderValue(item.policy)) }
 
-    val policy = item.item
-    val appName = item.appName
-    val packageName = item.packageName
-    val isEnabled = item.isEnabled
-    val uid = item.item.uid
-
-    val cardAlpha = if (isEnabled) 1f else 0.5f
+    LaunchedEffect(item.policy) {
+        sliderValue = policyToSliderValue(item.policy)
+    }
 
     Card(
         modifier = modifier
@@ -314,7 +339,9 @@ private fun PolicyItem(
                 .padding(16.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggleExpanded),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 androidx.compose.foundation.Image(
@@ -328,7 +355,7 @@ private fun PolicyItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = appName,
+                        text = item.appName,
                         style = MiuixTheme.textStyles.body1,
                         fontWeight = FontWeight.Bold,
                         color = MiuixTheme.colorScheme.onSurface,
@@ -339,109 +366,175 @@ private fun PolicyItem(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = packageName,
+                        text = item.packageName,
                         style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurfaceContainer,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = policyTagText(uid),
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.primary
-                    )
+                    val policyTag = policyTagText(item.uid)
+                    if (policyTag.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = policyTag,
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.primary
+                        )
+                    }
                 }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Column(
+                    horizontalAlignment = Alignment.End
                 ) {
-                    Button(
-                        onClick = { onUpdatePolicy(if (policy.policy >= 2) 1 else 2) },
-                        colors = if (policy.policy >= 2) {
-                            ButtonDefaults.buttonColorsPrimary()
-                        } else {
-                            ButtonDefaults.buttonColors()
-                        },
-                        enabled = isEnabled
-                    ) {
-                        Icon(
-                            imageVector = MiuixIcons.Ok,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                    if (item.showSlider) {
+                        Slider(
+                            value = sliderValue,
+                            onValueChange = { value ->
+                                sliderValue = value
+                            },
+                            onValueChangeFinished = {
+                                val snapped = sliderValue.roundToInt().coerceIn(1, 3).toFloat()
+                                sliderValue = snapped
+                                val newPolicy = sliderValueToPolicy(snapped)
+                                if (newPolicy != item.policy) onUpdatePolicy(newPolicy)
+                            },
+                            valueRange = 1f..3f,
+                            steps = 1,
+                            modifier = Modifier.width(120.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (policy.policy >= 2) {
-                                context.getString(CoreR.string.grant)
-                            } else {
-                                context.getString(CoreR.string.deny)
-                            }
+                            text = context.getString(policyToTextRes(item.policy)),
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium
                         )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isAllowed) {
+                                    context.getString(CoreR.string.grant)
+                                } else {
+                                    context.getString(CoreR.string.deny)
+                                },
+                                style = MiuixTheme.textStyles.body2,
+                                color = if (isAllowed) {
+                                    MiuixTheme.colorScheme.primary
+                                } else {
+                                    MiuixTheme.colorScheme.onSurfaceContainer
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Switch(
+                                checked = isAllowed,
+                                enabled = true,
+                                onCheckedChange = { checked ->
+                                    onUpdatePolicy(if (checked) SuPolicy.ALLOW else SuPolicy.DENY)
+                                }
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn(animationSpec = tween(220)) + expandVertically(animationSpec = tween(260)),
+                exit = fadeOut(animationSpec = tween(180)) + shrinkVertically(animationSpec = tween(220))
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = context.getString(CoreR.string.superuser_toggle_notification),
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = item.shouldNotify,
-                        enabled = isEnabled,
-                        onCheckedChange = { onUpdateNotify() }
-                    )
+                Column {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = context.getString(CoreR.string.superuser_toggle_notification),
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Switch(
+                                checked = item.shouldNotify,
+                                enabled = true,
+                                onCheckedChange = { onUpdateNotify() }
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = context.getString(CoreR.string.logs),
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Switch(
+                                checked = item.shouldLog,
+                                enabled = true,
+                                onCheckedChange = { onUpdateLogging() }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = onDelete,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            color = MiuixTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            imageVector = MiuixIcons.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MiuixTheme.colorScheme.onError
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = context.getString(CoreR.string.superuser_toggle_revoke),
+                            color = MiuixTheme.colorScheme.onError
+                        )
+                    }
                 }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = context.getString(CoreR.string.superuser_toggle_revoke),
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = item.shouldLog,
-                        enabled = isEnabled,
-                        onCheckedChange = { onUpdateLogging() }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = onDelete,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    color = MiuixTheme.colorScheme.error
-                )
-            ) {
-                Icon(
-                    imageVector = MiuixIcons.Delete,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = context.getString(CoreR.string.su_revoke_title))
             }
         }
+    }
+}
+
+private fun policyToSliderValue(policy: Int): Float {
+    return when (policy) {
+        SuPolicy.DENY -> 1f
+        SuPolicy.RESTRICT -> 2f
+        SuPolicy.ALLOW -> 3f
+        else -> 1f
+    }
+}
+
+private fun sliderValueToPolicy(value: Float): Int {
+    return when (value.roundToInt().coerceIn(1, 3)) {
+        1 -> SuPolicy.DENY
+        2 -> SuPolicy.RESTRICT
+        3 -> SuPolicy.ALLOW
+        else -> SuPolicy.DENY
+    }
+}
+
+private fun policyToTextRes(policy: Int): Int {
+    return when {
+        policy >= SuPolicy.ALLOW -> CoreR.string.grant
+        policy == SuPolicy.RESTRICT -> CoreR.string.restrict
+        else -> CoreR.string.deny
     }
 }
 
@@ -450,6 +543,6 @@ private fun policyTagText(uid: Int): String {
         uid == 0 -> "ROOT"
         uid == Process.SYSTEM_UID -> "SYSTEM"
         uid < Process.FIRST_APPLICATION_UID -> "CUSTOM"
-        else -> "USER"
+        else -> ""
     }
 }

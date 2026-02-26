@@ -30,6 +30,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.topjohnwu.magisk.arch.BaseViewModel
+import com.topjohnwu.magisk.arch.ActivityExecutor
+import com.topjohnwu.magisk.arch.ContextExecutor
 import com.topjohnwu.magisk.arch.VMFactory
 import com.topjohnwu.magisk.arch.ViewEvent
 import com.topjohnwu.magisk.arch.ViewModelHolder
@@ -288,8 +290,13 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
      */
     override fun startObserveLiveData() {
         viewModel.viewEvents.observe(this, this::onEventDispatched)
+        homeViewModel.viewEvents.observe(this, this::onEventDispatched)
+        moduleViewModel.viewEvents.observe(this, this::onEventDispatched)
+        superuserViewModel.viewEvents.observe(this, this::onEventDispatched)
+        logViewModel.viewEvents.observe(this, this::onEventDispatched)
         installViewModel.viewEvents.observe(this, this::onEventDispatched)
         flashViewModel.viewEvents.observe(this, this::onEventDispatched)
+        settingsViewModel.viewEvents.observe(this, this::onEventDispatched)
         Info.isConnected.observe(this) { connected ->
             viewModel.onNetworkChanged(connected)
             moduleViewModel.onNetworkChanged(connected)
@@ -305,7 +312,11 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
      * @param event 要处理的事件
      */
     override fun onEventDispatched(event: ViewEvent) {
-        super.onEventDispatched(event)
+        when (event) {
+            is ContextExecutor -> event(this)
+            is ActivityExecutor -> event(this)
+            else -> Unit
+        }
     }
 
     /**
