@@ -58,7 +58,9 @@ class FlashViewModel : BaseViewModel() {
             e ?: return
             items.add(ConsoleItem(e))
             logItems.add(e)
-            _consoleLines.value = _consoleLines.value + e
+            viewModelScope.launch {
+                _consoleLines.value = _consoleLines.value + e
+            }
         }
     }
 

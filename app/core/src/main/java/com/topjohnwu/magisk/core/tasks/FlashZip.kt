@@ -77,6 +77,7 @@ open class FlashZip(
             false
         } finally {
             Shell.cmd("cd /", "rm -rf $installDir ${Const.TMPDIR}").submit()
+            File(AppContext.cacheDir, "module_install").deleteRecursively()
         }
     }
 }

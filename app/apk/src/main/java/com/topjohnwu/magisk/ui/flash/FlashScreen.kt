@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -55,6 +56,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -168,6 +170,13 @@ fun FlashScreen(
                             .align(Alignment.BottomEnd)
                             .padding(end = 16.dp, bottom = 16.dp)
                     ) {
+                        Icon(
+                            imageVector = MiuixIcons.Refresh,
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = context.getString(CoreR.string.reboot),
                             color = MiuixTheme.colorScheme.onPrimary,
@@ -193,11 +202,15 @@ private fun FlashStateCard(state: FlashViewModel.State) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = 40.dp)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (state == FlashViewModel.State.FLASHING) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                CircularProgressIndicator(
+                    size = 18.dp,
+                    strokeWidth = 2.dp
+                )
                 Spacer(modifier = Modifier.width(10.dp))
             }
             Text(

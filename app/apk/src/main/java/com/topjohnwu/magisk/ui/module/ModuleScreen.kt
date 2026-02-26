@@ -1,7 +1,7 @@
 package com.topjohnwu.magisk.ui.module
 
-import android.content.Intent
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -65,6 +65,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
+
 /**
  * 模块列表页面
  * 使用 Compose 实现模块管理界面
@@ -93,17 +94,23 @@ fun ModuleScreen(
         uri?.let {
             scope.launch {
                 val copied = runCatching {
-                    runCatching {
-                        context.contentResolver.takePersistableUriPermission(
-                            it,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                        )
-                    }
                     withContext(Dispatchers.IO) {
-                        val cacheDir = File(context.cacheDir, "module_install").apply { mkdirs() }
-                        val target = File(cacheDir, "install_${System.currentTimeMillis()}.zip")
+                        val originalName = context.contentResolver.query(
+                            it, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+                        )?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                cursor.getString(
+                                    cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME)
+                                )
+                            } else null
+                        } ?: "install.zip"
+                        val cacheDir = File(context.cacheDir, "module_install").apply {
+                            deleteRecursively()
+                            mkdirs()
+                        }
+                        val target = File(cacheDir, originalName)
                         val input = context.contentResolver.openInputStream(it)
-                            ?: throw IOException("无法读取所选文件")
+                            ?: throw IOException("Cannot read selected file")
                         input.use { source ->
                             target.outputStream().use { sink ->
                                 source.copyTo(sink)
@@ -119,7 +126,7 @@ fun ModuleScreen(
                     .onFailure { error ->
                         Toast.makeText(
                             context,
-                            error.message ?: "读取模块文件失败",
+                            error.message ?: context.getString(CoreR.string.failure),
                             Toast.LENGTH_LONG
                         ).show()
                     }
