@@ -70,6 +70,8 @@ import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.core.R as CoreR
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.utils.TextHolder
+import com.topjohnwu.magisk.ui.module.RebootListPopup
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 
 /**
  * 主页面屏幕
@@ -148,7 +150,14 @@ fun HomeScreen(
                 },
                 color = Color.Transparent,
                 title = context.getString(CoreR.string.section_home),
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                actions = {
+                    // 添加电源重启弹出菜单
+                    RebootListPopup(
+                        modifier = Modifier.padding(end = 16.dp),
+                        alignment = PopupPositionProvider.Align.TopEnd,
+                    )
+                }
             )
         },
         popupHost = { }
