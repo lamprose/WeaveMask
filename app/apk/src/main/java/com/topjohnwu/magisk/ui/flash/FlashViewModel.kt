@@ -43,6 +43,7 @@ class FlashViewModel : BaseViewModel() {
     val state: LiveData<State> get() = _state
     val flashing = state.map { it == State.FLASHING }
     private var isInitialized = false
+    private var isFlashingStarted = false
 
     @get:Bindable
     var showReboot = Info.isRooted
@@ -71,6 +72,7 @@ class FlashViewModel : BaseViewModel() {
     fun prepareForCompose(action: String, uri: android.net.Uri?) {
         if (isInitialized) return
         isInitialized = true
+        isFlashingStarted = false
 
         args = FlashFragmentArgs(action = action, additionalData = uri)
         _state.value = State.FLASHING
@@ -83,6 +85,8 @@ class FlashViewModel : BaseViewModel() {
     }
 
     fun startFlashing() {
+        if (isFlashingStarted) return
+        isFlashingStarted = true
         val (action, uri) = args
 
         viewModelScope.launch {
