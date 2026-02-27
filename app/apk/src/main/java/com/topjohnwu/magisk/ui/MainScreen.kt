@@ -33,6 +33,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -340,11 +341,24 @@ fun MainScreen(
                     ?.let(Uri::decode)
                     ?.let(Uri::parse)
 
+                // 使用 DisposableEffect 监听页面离开，处理侧滑返回的情况
+                DisposableEffect(action) {
+                    onDispose {
+                        // 如果从模块安装页面离开，刷新模块列表
+                        if (action == Const.Value.FLASH_ZIP) {
+                            moduleViewModel.refresh()
+                        }
+                    }
+                }
+
                 FlashScreen(
                     viewModel = flashViewModel,
                     action = action,
                     additionalData = uriArg,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = {
+                        // 点击返回按钮时也会触发 DisposableEffect 的 onDispose
+                        navController.popBackStack()
+                    }
                 )
             }
 
