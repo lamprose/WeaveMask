@@ -19,12 +19,13 @@ import androidx.lifecycle.lifecycleScope
 import com.topjohnwu.magisk.core.AppContext
 import com.topjohnwu.magisk.core.Config
 import com.topjohnwu.magisk.core.R
+import com.topjohnwu.magisk.core.base.ActivityExtension
+import com.topjohnwu.magisk.core.base.IActivityExtension
 import com.topjohnwu.magisk.core.base.UntrackedActivity
 import com.topjohnwu.magisk.core.di.ServiceLocator
 import com.topjohnwu.magisk.core.su.SuCallbackHandler
 import com.topjohnwu.magisk.core.su.SuCallbackHandler.REQUEST
 import com.topjohnwu.magisk.dialog.SuRequestDialog
-import com.topjohnwu.magisk.events.DieEvent
 import com.topjohnwu.magisk.ui.theme.WeaveMagiskTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,7 +41,14 @@ import kotlinx.coroutines.withContext
  * 3. 生物识别认证 - 支持 suAuth 配置
  * 4. 倒计时自动拒绝 - 默认 10 秒超时
  */
-class SuRequestActivity : ComponentActivity(), UntrackedActivity {
+class SuRequestActivity : ComponentActivity(), UntrackedActivity, IActivityExtension {
+
+    /**
+     * Activity 扩展实例
+     * 用于支持权限请求、身份验证等功能
+     * 必须在属性初始化时创建，以确保 registerForActivityResult 在正确的时机调用
+     */
+    override val extension = ActivityExtension(this)
 
     /**
      * ViewModel 实例
@@ -53,8 +61,18 @@ class SuRequestActivity : ComponentActivity(), UntrackedActivity {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 配置窗口特性
-        configureWindow()
+        // 配置窗口特性（必须在 super.onCreate 之前）
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.addFlags(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
+        window.setBackgroundDrawableResource(android.R.color.transparent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            window.setHideOverlayWindows(true)
+        }
+
+        // 初始化 ActivityExtension（必须在 super.onCreate 之前）
+        extension.onCreate(savedInstanceState)
 
         super.onCreate(savedInstanceState)
 
@@ -76,7 +94,18 @@ class SuRequestActivity : ComponentActivity(), UntrackedActivity {
                     state = dialogState,
                     timeoutOptions = resources.getStringArray(R.array.allow_timeout),
                     onTimeoutSelected = viewModel::onTimeoutSelected,
-                    onGrant = viewModel::grantPressed,
+                    onGrant = {
+                        viewModel.cancelTimer()
+                        if (Config.suAuth) {
+                            withAuthentication { authenticated ->
+                                if (authenticated) {
+                                    viewModel.respondGranted()
+                                }
+                            }
+                        } else {
+                            viewModel.respondGranted()
+                        }
+                    },
                     onDeny = viewModel::denyPressed,
                     onDismiss = viewModel::denyPressed
                 )
@@ -86,8 +115,14 @@ class SuRequestActivity : ComponentActivity(), UntrackedActivity {
         // 处理 Intent
         handleIntent(intent)
 
-        // 监听 ViewModel 事件
-        observeViewModelEvents()
+        // 观察 shouldFinish 状态
+        lifecycleScope.launch {
+            viewModel.shouldFinish.collect { shouldFinish ->
+                if (shouldFinish) {
+                    finishAndRemoveTask()
+                }
+            }
+        }
 
         // 生命周期观察
         lifecycle.addObserver(LifecycleEventObserver { _, event ->
@@ -95,26 +130,6 @@ class SuRequestActivity : ComponentActivity(), UntrackedActivity {
                 viewModel.onDestroy()
             }
         })
-    }
-
-    /**
-     * 配置窗口特性
-     * - 无标题
-     * - 锁定屏幕方向
-     * - 保持屏幕常亮
-     * - 隐藏软键盘
-     * - Android 12+ 隐藏覆盖窗口
-     */
-    private fun configureWindow() {
-        requestWindowFeature(Window.FEATURE_NO_TITLE)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        window.addFlags(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
-        // 设置浮动窗口样式，让背后的应用可见
-        window.setBackgroundDrawableResource(android.R.color.transparent)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            window.setHideOverlayWindows(true)
-        }
     }
 
     /**
@@ -138,18 +153,6 @@ class SuRequestActivity : ComponentActivity(), UntrackedActivity {
             }
         } else {
             finishAndRemoveTask()
-        }
-    }
-
-    /**
-     * 观察 ViewModel 事件
-     * 处理 DieEvent 等 Activity 级别事件
-     */
-    private fun observeViewModelEvents() {
-        viewModel.viewEvents.observe(this) { event ->
-            when (event) {
-                is DieEvent -> finishAndRemoveTask()
-            }
         }
     }
 
@@ -193,5 +196,16 @@ class SuRequestActivity : ComponentActivity(), UntrackedActivity {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
+    }
+
+    /**
+     * 保存实例状态
+     * 保存 ActivityExtension 的状态以便恢复
+     *
+     * @param outState 状态 Bundle
+     */
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        extension.onSaveInstanceState(outState)
     }
 }

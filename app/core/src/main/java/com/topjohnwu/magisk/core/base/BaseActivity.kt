@@ -4,6 +4,7 @@ import android.Manifest.permission.POST_NOTIFICATIONS
 import android.Manifest.permission.REQUEST_INSTALL_PACKAGES
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.app.Activity
+import android.app.KeyguardManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -105,9 +106,22 @@ class ActivityExtension(private val activity: ComponentActivity) {
         }
     }
 
+    /**
+     * 启动设备身份验证
+     * 如果设备设置了锁屏凭据，会弹出系统身份验证对话框
+     * 如果设备未设置锁屏凭据，直接回调 true
+     *
+     * @param callback 验证结果回调
+     */
     fun withAuthentication(callback: (Boolean) -> Unit) {
-        authenticateCallback = callback
-        requestAuthenticate.launch(Unit)
+        val keyguardManager = activity.getSystemService(KeyguardManager::class.java)
+        if (keyguardManager.isDeviceSecure) {
+            authenticateCallback = callback
+            requestAuthenticate.launch(Unit)
+        } else {
+            // 设备未设置锁屏凭据，直接返回验证成功
+            callback(true)
+        }
     }
 
     fun getContent(type: String, callback: ContentResultCallback) {

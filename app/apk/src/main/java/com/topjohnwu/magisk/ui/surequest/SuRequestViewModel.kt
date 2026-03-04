@@ -26,8 +26,6 @@ import com.topjohnwu.magisk.core.model.su.SuPolicy.Companion.ALLOW
 import com.topjohnwu.magisk.core.model.su.SuPolicy.Companion.DENY
 import com.topjohnwu.magisk.core.su.SuRequestHandler
 import com.topjohnwu.magisk.dialog.SuRequestDialog
-import com.topjohnwu.magisk.events.AuthEvent
-import com.topjohnwu.magisk.events.DieEvent
 import com.topjohnwu.magisk.arch.BaseViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,6 +70,12 @@ class SuRequestViewModel(
      */
     private val _dialogState = MutableStateFlow(SuRequestDialog.DialogState())
     val dialogState: StateFlow<SuRequestDialog.DialogState> = _dialogState.asStateFlow()
+
+    /**
+     * 是否应该结束 Activity
+     */
+    private val _shouldFinish = MutableStateFlow(false)
+    val shouldFinish: StateFlow<Boolean> = _shouldFinish.asStateFlow()
 
     /**
      * 应用图标
@@ -128,16 +132,20 @@ class SuRequestViewModel(
     }
 
     /**
-     * 允许按钮点击处理
-     * 触发生物识别认证（如启用）或直接响应允许
+     * 取消倒计时
+     * 在用户点击允许按钮时调用
      */
-    fun grantPressed() {
-        cancelTimer()
-        if (Config.suAuth) {
-            AuthEvent { respond(ALLOW) }.publish()
-        } else {
-            respond(ALLOW)
-        }
+    fun cancelTimer() {
+        timer?.cancel()
+        timer = null
+    }
+
+    /**
+     * 响应允许请求
+     * 在身份验证成功后或无需验证时调用
+     */
+    fun respondGranted() {
+        respond(ALLOW)
     }
 
     /**
@@ -178,7 +186,7 @@ class SuRequestViewModel(
                     showDialog()
                 }
             } else {
-                DieEvent().publish()
+                _shouldFinish.value = true
             }
         }
     }
@@ -259,7 +267,7 @@ class SuRequestViewModel(
         viewModelScope.launch {
             handler.respond(action, Config.Value.TIMEOUT_LIST[pos])
             // 响应后结束 Activity
-            DieEvent().publish()
+            _shouldFinish.value = true
         }
     }
 
@@ -284,14 +292,6 @@ class SuRequestViewModel(
                 respond(DENY)
             }
         }.start()
-    }
-
-    /**
-     * 取消倒计时
-     */
-    private fun cancelTimer() {
-        timer?.cancel()
-        timer = null
     }
 
     /**
