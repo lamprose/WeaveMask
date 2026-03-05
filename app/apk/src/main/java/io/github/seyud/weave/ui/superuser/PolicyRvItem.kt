@@ -92,7 +92,9 @@ class PolicyRvItem(
     }
 
     fun revoke() {
-        viewModel.deletePressed(this)
+        viewModel.onRevokePressed(
+            viewModel.policyKey(item.uid, packageName)
+        )
     }
 
     override fun itemSameAs(other: PolicyRvItem) = packageName == other.packageName

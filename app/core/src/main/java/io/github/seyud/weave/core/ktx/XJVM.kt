@@ -3,6 +3,7 @@ package io.github.seyud.weave.core.ktx
 import androidx.collection.SparseArrayCompat
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
@@ -78,6 +79,7 @@ fun <K, V> MutableMap<K, V>.synchronized(): MutableMap<K, V> = Collections.synch
 fun Class<*>.reflectField(name: String): Field =
     getDeclaredField(name).apply { isAccessible = true }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 inline fun <T, R> Flow<T>.concurrentMap(crossinline transform: suspend (T) -> R): Flow<R> {
     return flatMapMerge { value ->
         flow { emit(transform(value)) }

@@ -38,7 +38,7 @@ object VMFactory : ViewModelProvider.Factory {
                 InstallViewModel(ServiceLocator.networkService, ServiceLocator.markwon)
             SuRequestViewModel::class.java ->
                 SuRequestViewModel(ServiceLocator.policyDB, ServiceLocator.timeoutPrefs)
-            else -> modelClass.newInstance()
+            else -> modelClass.getDeclaredConstructor().newInstance()
         } as T
     }
 }

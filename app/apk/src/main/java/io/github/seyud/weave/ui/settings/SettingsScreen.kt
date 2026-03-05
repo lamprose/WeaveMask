@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AddToHomeScreen
+import androidx.compose.material.icons.automirrored.rounded.AddToHomeScreen
 import androidx.compose.material.icons.rounded.AdminPanelSettings
 import androidx.compose.material.icons.rounded.AppBlocking
 import androidx.compose.material.icons.rounded.Block
@@ -386,7 +386,7 @@ fun SettingsScreen(
                             summary = stringResource(CoreR.string.setting_add_shortcut_summary),
                             startAction = {
                                 Icon(
-                                    Icons.Rounded.AddToHomeScreen,
+                                    Icons.AutoMirrored.Rounded.AddToHomeScreen,
                                     modifier = Modifier.padding(end = 6.dp),
                                     contentDescription = null,
                                     tint = colorScheme.onBackground

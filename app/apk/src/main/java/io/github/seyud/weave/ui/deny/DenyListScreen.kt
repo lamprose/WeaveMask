@@ -212,6 +212,7 @@ fun DenyListScreen(
  */
 @Composable
 private fun rememberObservableList(filterList: FilterList<DenyListRvItem>): SnapshotStateList<DenyListRvItem> {
+    @Suppress("UNCHECKED_CAST")
     val observableList = filterList as ObservableList<DenyListRvItem>
     val stateList = remember { mutableStateListOf<DenyListRvItem>().apply { addAll(observableList) } }
 

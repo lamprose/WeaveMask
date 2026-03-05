@@ -2,6 +2,7 @@ package io.github.seyud.weave.arch
 
 import android.content.ContentResolver
 import android.view.KeyEvent
+import androidx.activity.OnBackPressedCallback
 import androidx.databinding.ViewDataBinding
 import androidx.navigation.NavController
 import androidx.navigation.NavDirections
@@ -22,16 +23,23 @@ abstract class NavigationActivity<Binding : ViewDataBinding> : UIActivity<Bindin
 
     val navigation: NavController get() = navHostFragment.navController
 
+    private val backPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            if (!binded || currentFragment?.onBackPressed() == false) {
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        }
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         return if (binded && currentFragment?.onKeyEvent(event) == true) true else super.dispatchKeyEvent(event)
     }
 
-    override fun onBackPressed() {
-        if (binded) {
-            if (currentFragment?.onBackPressed() == false) {
-                super.onBackPressed()
-            }
-        }
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this, backPressedCallback)
     }
 
     companion object {

@@ -937,7 +937,6 @@ private fun DeveloperItem(
                     is IconLink.Twitter -> CoreR.drawable.ic_twitter
                     is IconLink.Github -> CoreR.drawable.ic_github
                     is IconLink.Sponsor -> CoreR.drawable.ic_favorite
-                    else -> CoreR.drawable.ic_more
                 }
 
                 IconButton(

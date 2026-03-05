@@ -11,6 +11,7 @@ import io.github.seyud.weave.core.download.Subject
 import io.github.seyud.weave.view.Notifications
 import io.github.seyud.weave.view.Shortcuts
 import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -33,6 +34,7 @@ open class Receiver : BaseReceiver() {
         intent ?: return
         super.onReceive(context, intent)
 
+        @OptIn(DelicateCoroutinesApi::class)
         fun rmPolicy(uid: Int) = GlobalScope.launch {
             policyDB.delete(uid)
         }

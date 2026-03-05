@@ -13,7 +13,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Slider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.automirrored.filled.Article
 import android.os.Process
 import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.runtime.Composable
@@ -513,7 +513,7 @@ private fun PolicyItem(
 
                         // 日志按钮
                         TextButtonWithIcon(
-                            icon = Icons.Filled.Article,
+                            icon = Icons.AutoMirrored.Filled.Article,
                             text = context.getString(CoreR.string.logs),
                             isSelected = item.shouldLog,
                             onClick = onUpdateLogging,

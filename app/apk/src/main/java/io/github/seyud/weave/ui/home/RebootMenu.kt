@@ -38,6 +38,7 @@ object RebootMenu {
         activity.menuInflater.inflate(R.menu.menu_reboot, menu.menu)
         menu.setOnMenuItemClickListener(RebootMenu::reboot)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+            @Suppress("DEPRECATION")
             activity.getSystemService<PowerManager>()?.isRebootingUserspaceSupported == true) {
             menu.menu.findItem(R.id.action_reboot_userspace).isVisible = true
         }

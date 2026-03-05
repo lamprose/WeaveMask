@@ -87,7 +87,7 @@ class SuperuserViewModel(
 
     private var allPolicies: List<PolicyRvItem> = emptyList()
 
-    private fun policyKey(uid: Int, packageName: String) = "$uid:$packageName"
+    internal fun policyKey(uid: Int, packageName: String) = "$uid:$packageName"
 
     private fun PolicyRvItem.toCardUiState() = PolicyCardUiState(
         key = policyKey(item.uid, packageName),

@@ -78,7 +78,7 @@ class HomeFragment : BaseFragment<FragmentHomeMd2Binding>(), MenuProvider {
                     )
                 }
             R.id.action_reboot -> activity?.let { RebootMenu.inflate(it).show() }
-            else -> return super.onOptionsItemSelected(item)
+            else -> return false
         }
         return true
     }

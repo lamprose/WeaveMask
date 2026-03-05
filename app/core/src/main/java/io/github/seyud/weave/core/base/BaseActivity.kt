@@ -16,6 +16,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.core.os.BundleCompat
 import io.github.seyud.weave.core.R
 import io.github.seyud.weave.core.ktx.reflectField
 import io.github.seyud.weave.core.ktx.toast
@@ -70,11 +71,8 @@ class ActivityExtension(private val activity: ComponentActivity) {
     }
 
     fun onCreate(savedInstanceState: Bundle?) {
-        contentCallback = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            savedInstanceState?.getParcelable(CONTENT_CALLBACK_KEY)
-        } else {
-            savedInstanceState
-                ?.getParcelable(CONTENT_CALLBACK_KEY, ContentResultCallback::class.java)
+        contentCallback = savedInstanceState?.let {
+            BundleCompat.getParcelable(it, CONTENT_CALLBACK_KEY, ContentResultCallback::class.java)
         }
     }
 

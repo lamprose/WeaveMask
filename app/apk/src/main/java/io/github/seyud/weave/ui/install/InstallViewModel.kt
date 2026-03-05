@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
 import android.text.Spanned
+import androidx.core.os.BundleCompat
 import android.text.SpannedString
 import androidx.databinding.Bindable
 import androidx.lifecycle.LiveData
@@ -132,7 +133,7 @@ class InstallViewModel(svc: NetworkService, markwon: Markwon) : BaseViewModel() 
     }
 
     override fun onRestoreState(state: Bundle) {
-        state.getParcelable<InstallState>(INSTALL_STATE_KEY)?.let {
+        BundleCompat.getParcelable(state, INSTALL_STATE_KEY, InstallState::class.java)?.let {
             methodId = it.method
             step = it.step
             Config.keepVerity = it.keepVerity

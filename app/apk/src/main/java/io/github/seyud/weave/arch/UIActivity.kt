@@ -10,7 +10,9 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.res.use
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
@@ -76,14 +78,23 @@ abstract class UIActivity<Binding : ViewDataBinding>
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             window?.decorView?.post {
                 // If navigation bar is short enough (gesture navigation enabled), make it transparent
-                if ((window.decorView.rootWindowInsets?.systemWindowInsetBottom
-                        ?: 0) < Resources.getSystem().displayMetrics.density * 40) {
+                val bottomInset = ViewCompat.getRootWindowInsets(window.decorView)
+                    ?.getInsets(WindowInsetsCompat.Type.systemBars())?.bottom ?: 0
+                if (bottomInset < Resources.getSystem().displayMetrics.density * 40) {
+                    // navigationBarColor / dividerColor / isStatusBarContrastEnforced are
+                    // deprecated in API 35 (edge-to-edge default), but there is no direct
+                    // Compat replacement — the code already enables edge-to-edge via
+                    // WindowCompat.setDecorFitsSystemWindows, so these are only effective
+                    // on older API levels where the deprecation does not apply.
+                    @Suppress("DEPRECATION")
                     window.navigationBarColor = Color.TRANSPARENT
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        @Suppress("DEPRECATION")
                         window.navigationBarDividerColor = Color.TRANSPARENT
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         window.isNavigationBarContrastEnforced = false
+                        @Suppress("DEPRECATION")
                         window.isStatusBarContrastEnforced = false
                     }
                 }
