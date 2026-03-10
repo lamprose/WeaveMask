@@ -46,6 +46,12 @@ interface PreferenceConfig {
         default: String,
         commit: Boolean = false
     ) = StringProperty(name, default, commit)
+
+    fun preference(
+        name: String,
+        default: Float,
+        commit: Boolean = false
+    ) = FloatProperty(name, default, commit)
 }
 
 abstract class PreferenceProperty {
@@ -132,6 +138,30 @@ class StringProperty(
         thisRef: PreferenceConfig,
         property: KProperty<*>,
         value: String
+    ) {
+        val prefName = name.ifBlank { property.name }
+        thisRef.prefs.edit(commit) { put(prefName, value) }
+    }
+}
+
+class FloatProperty(
+    private val name: String,
+    private val default: Float,
+    private val commit: Boolean
+) : PreferenceProperty(), ReadWriteProperty<PreferenceConfig, Float> {
+
+    override operator fun getValue(
+        thisRef: PreferenceConfig,
+        property: KProperty<*>
+    ): Float {
+        val prefName = name.ifBlank { property.name }
+        return thisRef.prefs.get(prefName, default)
+    }
+
+    override operator fun setValue(
+        thisRef: PreferenceConfig,
+        property: KProperty<*>,
+        value: Float
     ) {
         val prefName = name.ifBlank { property.name }
         thisRef.prefs.edit(commit) { put(prefName, value) }

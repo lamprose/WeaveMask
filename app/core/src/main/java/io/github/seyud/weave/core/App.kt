@@ -2,10 +2,27 @@ package io.github.seyud.weave.core
 
 import android.app.Application
 import android.content.Context
+import android.content.pm.ApplicationInfo
+import android.os.Build
 import io.github.seyud.weave.StubApk
 import io.github.seyud.weave.core.utils.RootUtils
+import org.lsposed.hiddenapibypass.HiddenApiBypass
 
 open class App() : Application() {
+
+    companion object {
+        fun setEnableOnBackInvokedCallback(appInfo: ApplicationInfo, enable: Boolean) {
+            runCatching {
+                val applicationInfoClass = ApplicationInfo::class.java
+                val method = applicationInfoClass.getDeclaredMethod(
+                    "setEnableOnBackInvokedCallback",
+                    Boolean::class.javaPrimitiveType
+                )
+                method.isAccessible = true
+                method.invoke(appInfo, enable)
+            }
+        }
+    }
 
     constructor(o: Any) : this() {
         val data = StubApk.Data(o)
@@ -14,6 +31,18 @@ open class App() : Application() {
         // Send back the actual root service class
         data.rootService = RootUtils::class.java
         Info.stub = data
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            HiddenApiBypass.addHiddenApiExemptions(
+                "Landroid/content/pm/ApplicationInfo;->setEnableOnBackInvokedCallback"
+            )
+            // Always keep the back callback enabled on Android 14+ so swipe-back
+            // continues to go through the dispatcher and our NavHost transitions run.
+            setEnableOnBackInvokedCallback(applicationInfo, true)
+        }
     }
 
     override fun attachBaseContext(context: Context) {

@@ -45,6 +45,8 @@ dependencies {
     api(libs.libsu.service)
     api(libs.libsu.nio)
 
+    implementation(libs.hiddenapibypass)
+
     implementation(libs.retrofit)
     implementation(libs.retrofit.moshi)
     implementation(libs.retrofit.scalars)

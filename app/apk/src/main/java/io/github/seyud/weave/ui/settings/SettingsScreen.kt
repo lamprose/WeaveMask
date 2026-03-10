@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.AddToHomeScreen
+import androidx.compose.material.icons.rounded.Adb
 import androidx.compose.material.icons.rounded.AdminPanelSettings
 import androidx.compose.material.icons.rounded.AppBlocking
+import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.BugReport
@@ -86,7 +88,10 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Slider
+import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.extra.SuperDropdown
@@ -94,6 +99,7 @@ import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import io.github.seyud.weave.core.App as CoreApp
 import io.github.seyud.weave.core.R as CoreR
 
 /**
@@ -206,6 +212,8 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    val showScaleDialog = rememberSaveable { mutableStateOf(false) }
+
                     // 主题模式
                     val themeItems = listOf(
                         stringResource(CoreR.string.settings_theme_mode_system),
@@ -363,6 +371,77 @@ fun SettingsScreen(
                             }
                         )
                     }
+
+                    // 预测性返回手势（Android 14+）
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        var enablePredictiveBack by rememberSaveable { mutableStateOf(Config.enablePredictiveBack) }
+                        SuperSwitch(
+                            title = stringResource(CoreR.string.settings_enable_predictive_back),
+                            summary = stringResource(CoreR.string.settings_enable_predictive_back_summary),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.Adb,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(CoreR.string.settings_enable_predictive_back),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            checked = enablePredictiveBack,
+                            onCheckedChange = {
+                                Config.enablePredictiveBack = it
+                                enablePredictiveBack = it
+                                if (it) {
+                                    CoreApp.setEnableOnBackInvokedCallback(context.applicationInfo, true)
+                                }
+                                activity.recreate()
+                            }
+                        )
+                    }
+
+                    // 界面缩放
+                    var sliderValue by rememberSaveable { mutableStateOf(Config.pageScale) }
+                    SuperArrow(
+                        title = stringResource(CoreR.string.settings_page_scale),
+                        summary = stringResource(CoreR.string.settings_page_scale_summary),
+                        startAction = {
+                            Icon(
+                                Icons.Rounded.AspectRatio,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = stringResource(CoreR.string.settings_page_scale),
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        endActions = {
+                            Text(
+                                text = "${(sliderValue * 100).toInt()}%",
+                                color = colorScheme.onSurfaceVariantActions
+                            )
+                        },
+                        onClick = { showScaleDialog.value = !showScaleDialog.value },
+                        holdDownState = showScaleDialog.value,
+                        bottomAction = {
+                            Slider(
+                                value = sliderValue,
+                                onValueChange = { sliderValue = it },
+                                onValueChangeFinished = {
+                                    Config.pageScale = sliderValue
+                                },
+                                valueRange = 0.8f..1.1f,
+                                showKeyPoints = true,
+                                keyPoints = listOf(0.8f, 0.9f, 1f, 1.1f),
+                                magnetThreshold = 0.01f,
+                                hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                            )
+                        }
+                    )
+                    ScaleDialog(
+                        showDialog = showScaleDialog,
+                        scaleState = { Config.pageScale },
+                        onScaleChange = {
+                            Config.pageScale = it
+                            sliderValue = it
+                        }
+                    )
 
                     // 语言
                     SuperArrow(

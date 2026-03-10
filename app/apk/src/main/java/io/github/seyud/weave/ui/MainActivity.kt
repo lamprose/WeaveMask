@@ -22,12 +22,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -166,6 +169,7 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
             var enableBlur by remember { mutableStateOf(Config.enableBlur) }
             var enableFloatingBottomBar by remember { mutableStateOf(Config.enableFloatingBottomBar) }
             var enableFloatingBottomBarBlur by remember { mutableStateOf(Config.enableFloatingBottomBarBlur) }
+            var pageScale by remember { mutableFloatStateOf(Config.pageScale) }
 
             val darkMode = when (colorMode) {
                 2, 5 -> true
@@ -186,6 +190,7 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
                         Config.Key.ENABLE_BLUR -> enableBlur = Config.enableBlur
                         Config.Key.ENABLE_FLOATING_BOTTOM_BAR -> enableFloatingBottomBar = Config.enableFloatingBottomBar
                         Config.Key.ENABLE_FLOATING_BOTTOM_BAR_BLUR -> enableFloatingBottomBarBlur = Config.enableFloatingBottomBarBlur
+                        Config.Key.PAGE_SCALE -> pageScale = Config.pageScale
                     }
                 }
                 Config.prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -194,7 +199,13 @@ class MainActivity : AppCompatActivity(), SplashScreenHost, IActivityExtension, 
                 }
             }
 
+            val systemDensity = LocalDensity.current
+            val density = remember(systemDensity, pageScale) {
+                Density(systemDensity.density * pageScale, systemDensity.fontScale)
+            }
+
             CompositionLocalProvider(
+                LocalDensity provides density,
                 LocalEnableBlur provides enableBlur,
                 LocalEnableFloatingBottomBar provides enableFloatingBottomBar,
                 LocalEnableFloatingBottomBarBlur provides enableFloatingBottomBarBlur,

@@ -53,6 +53,8 @@ object Config : PreferenceConfig, DBConfig {
         const val ENABLE_BLUR = "enable_blur"
         const val ENABLE_FLOATING_BOTTOM_BAR = "enable_floating_bottom_bar"
         const val ENABLE_FLOATING_BOTTOM_BAR_BLUR = "enable_floating_bottom_bar_blur"
+        const val ENABLE_PREDICTIVE_BACK = "enable_predictive_back"
+        const val PAGE_SCALE = "page_scale"
 
         val NO_MIGRATION = setOf(ASKED_HOME, SU_REQUEST_TIMEOUT,
             SU_AUTO_RESPONSE, SU_REAUTH, SU_TAPJACK)
@@ -121,6 +123,8 @@ object Config : PreferenceConfig, DBConfig {
     var enableBlur by preference(Key.ENABLE_BLUR, true)
     var enableFloatingBottomBar by preference(Key.ENABLE_FLOATING_BOTTOM_BAR, false)
     var enableFloatingBottomBarBlur by preference(Key.ENABLE_FLOATING_BOTTOM_BAR_BLUR, false)
+    var enablePredictiveBack by preference(Key.ENABLE_PREDICTIVE_BACK, false)
+    var pageScale by preference(Key.PAGE_SCALE, 1.0f)
 
     private var checkUpdatePrefs by preference(Key.CHECK_UPDATES, true)
     private var localePrefs by preference(Key.LOCALE, "")
