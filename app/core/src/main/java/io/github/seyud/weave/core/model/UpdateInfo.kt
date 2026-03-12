@@ -21,7 +21,12 @@ data class UpdateInfo(
     val versionCode: Int = -1,
     val link: String = "",
     val note: String = ""
-) : Parcelable
+) : Parcelable {
+    val hasValidDownload: Boolean
+        get() = versionCode > 0 && (
+            link.startsWith("http://") || link.startsWith("https://")
+        )
+}
 
 @JsonClass(generateAdapter = true)
 data class ModuleJson(

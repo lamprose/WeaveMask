@@ -73,8 +73,14 @@ internal fun HomeDialogHost(
         title = context.getString(CoreR.string.home_app_title),
         version = viewModel.managerRemoteVersion.getText(context.resources).toString(),
         releaseNotes = viewModel.managerReleaseNotes,
+        installEnabled = viewModel.canInstallManagerUpdate,
         onDismiss = { viewModel.dismissManagerInstallDialog() },
         onInstall = {
+            if (!viewModel.canInstallManagerUpdate) {
+                context.toast(CoreR.string.no_connection, Toast.LENGTH_SHORT)
+                viewModel.dismissManagerInstallDialog()
+                return@ManagerInstallDialog
+            }
             val activity = context as? ComponentActivity
             if (activity is IActivityExtension) {
                 DownloadEngine.startWithActivity(activity, Subject.App())
@@ -92,6 +98,7 @@ internal fun ManagerInstallDialog(
     title: String,
     version: String,
     releaseNotes: String,
+    installEnabled: Boolean,
     onDismiss: () -> Unit,
     onInstall: () -> Unit,
 ) {
@@ -126,6 +133,7 @@ internal fun ManagerInstallDialog(
                 text = LocalContext.current.getString(CoreR.string.install),
                 onClick = onInstall,
                 modifier = Modifier.weight(1f),
+                enabled = installEnabled,
                 colors = ButtonDefaults.textButtonColorsPrimary()
             )
         }

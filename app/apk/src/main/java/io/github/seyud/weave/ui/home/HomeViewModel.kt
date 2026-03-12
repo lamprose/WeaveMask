@@ -112,6 +112,9 @@ class HomeViewModel(
     val managerReleaseNotes
         get() = Info.update.note
 
+    val canInstallManagerUpdate
+        get() = Info.update.hasValidDownload
+
     /**
      * 应用包名
      */
@@ -134,7 +137,7 @@ class HomeViewModel(
 
     override suspend fun doLoadWork() {
         appState = State.LOADING
-        Info.fetchUpdate(svc)?.apply {
+        Info.fetchUpdate(svc)?.takeIf { it.hasValidDownload }?.apply {
             appState = when {
                 BuildConfig.APP_VERSION_CODE < versionCode -> State.OUTDATED
                 else -> State.UP_TO_DATE
@@ -201,7 +204,9 @@ class HomeViewModel(
     fun onManagerPressed() = when (appState) {
         State.LOADING -> SnackbarEvent(CoreR.string.loading).publish()
         State.INVALID -> SnackbarEvent(CoreR.string.no_connection).publish()
-        else -> withExternalRW {
+        else -> if (!canInstallManagerUpdate) {
+            SnackbarEvent(CoreR.string.no_connection).publish()
+        } else withExternalRW {
             withInstallPermission {
                 isManagerInstallDialogVisible = true
             }
