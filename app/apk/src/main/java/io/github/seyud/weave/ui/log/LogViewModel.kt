@@ -5,23 +5,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.databinding.Bindable
 import androidx.lifecycle.viewModelScope
-import io.github.seyud.weave.BR
 import io.github.seyud.weave.arch.AsyncLoadViewModel
 import io.github.seyud.weave.core.BuildConfig
 import io.github.seyud.weave.core.Info
 import io.github.seyud.weave.core.R
 import io.github.seyud.weave.core.ktx.timeFormatStandard
 import io.github.seyud.weave.core.ktx.toTime
+import io.github.seyud.weave.core.model.su.SuLog
 import io.github.seyud.weave.core.repository.LogRepository
 import io.github.seyud.weave.core.utils.MediaStoreUtils
 import io.github.seyud.weave.core.utils.MediaStoreUtils.outputStream
-import io.github.seyud.weave.databinding.bindExtra
-import io.github.seyud.weave.databinding.diffList
-import io.github.seyud.weave.databinding.set
 import io.github.seyud.weave.events.SnackbarEvent
-import io.github.seyud.weave.view.TextItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,60 +25,45 @@ import java.io.FileInputStream
 class LogViewModel(
     private val repo: LogRepository
 ) : AsyncLoadViewModel() {
-    @get:Bindable
-    var loading = true
-        private set(value) = set(value, field, { field = it }, BR.loading)
+
+    private data class LoadResult(
+        val magiskEntries: List<MagiskLogEntry>,
+        val suItems: List<SuLog>,
+    )
 
     var loadingState by mutableStateOf(true)
         private set
 
-    // --- empty view
-
-    val itemEmpty = TextItem(R.string.log_data_none)
-    val itemMagiskEmpty = TextItem(R.string.log_data_magisk_none)
-
     // --- su log
-
-    val items = diffList<SuLogRvItem>()
-    val itemsState = mutableStateListOf<SuLogRvItem>()
-    val extraBindings = bindExtra {
-        it.put(BR.viewModel, this)
-    }
+    val itemsState = mutableStateListOf<SuLog>()
 
     // --- magisk log
-    val logs = diffList<LogRvItem>()
-    val logsState = mutableStateListOf<LogRvItem>()
+    val magiskLogEntriesState = mutableStateListOf<MagiskLogEntry>()
     var magiskLogRaw = " "
 
     override suspend fun doLoadWork() {
-        loading = true
         loadingState = true
 
         try {
-            val (newMagiskLogs, suLogs, suDiff) = withContext(Dispatchers.Default) {
+            val result = withContext(Dispatchers.Default) {
                 magiskLogRaw = repo.fetchMagiskLogs()
-                val newMagiskLogs = magiskLogRaw.split('\n').map { LogRvItem(it) }
-                val suLogs = repo.fetchSuLogs().map { SuLogRvItem(it) }
-                val suDiff = items.calculateDiff(suLogs)
-                Triple(newMagiskLogs, suLogs, suDiff)
+                val magiskEntries = MagiskLogParser.parse(magiskLogRaw).asReversed()
+                val suLogs = repo.fetchSuLogs()
+                    .sortedByDescending { it.time }
+                LoadResult(
+                    magiskEntries = magiskEntries,
+                    suItems = suLogs,
+                )
             }
 
-            logs.update(newMagiskLogs)
-            logsState.clear()
-            logsState.addAll(newMagiskLogs)
-
-            items.firstOrNull()?.isTop = false
-            items.lastOrNull()?.isBottom = false
-            items.update(suLogs, suDiff)
-            items.firstOrNull()?.isTop = true
-            items.lastOrNull()?.isBottom = true
+            magiskLogEntriesState.clear()
+            magiskLogEntriesState.addAll(result.magiskEntries)
 
             itemsState.clear()
-            itemsState.addAll(items)
+            itemsState.addAll(result.suItems)
         } catch (e: Throwable) {
             SnackbarEvent(R.string.failure).publish()
         } finally {
-            loading = false
             loadingState = false
         }
     }

@@ -232,6 +232,10 @@ fun DenyListScreen(
                     overscrollEffect = null,
                 ) {
                     item {
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+
+                    item {
                         SearchBar(
                             insideMargin = DpSize(16.dp, 0.dp),
                             inputField = {
