@@ -222,6 +222,11 @@ object Config : PreferenceConfig, DBConfig {
             fromBundle(bundle)
         }
 
+        // 首次安装时随机选择默认主题
+        if (!prefs.contains(Key.COLOR_MODE)) {
+            colorMode = if (kotlin.random.Random.nextBoolean()) 3 else 0  // 50% Monet跟随系统, 50% 跟随系统
+        }
+
         prefs.edit {
             // Migrate su_fingerprint
             if (prefs.getBoolean(SU_FINGERPRINT, false))
